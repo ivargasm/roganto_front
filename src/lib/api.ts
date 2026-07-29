@@ -1,4 +1,8 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+let _baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+if (_baseUrl && !_baseUrl.startsWith("http")) {
+  _baseUrl = `https://${_baseUrl}`;
+}
+export const API_BASE_URL = _baseUrl;
 
 export interface Charge {
   id: number;
