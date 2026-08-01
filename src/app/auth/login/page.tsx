@@ -6,7 +6,6 @@ import { useAuthStore } from "../../store/Store";
 import Link from "next/link"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm } from "react-hook-form";
@@ -73,39 +72,75 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-white dark:bg-gray-900">
-            <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md">
-                {globalError && <p className="text-red-500 text-sm mb-2 text-center">{globalError}</p>}
+        <div className="min-h-screen w-full flex bg-white">
+            {/* Left Side: Branding / Visual */}
+            <div className="hidden lg:flex w-1/2 bg-slate-900 relative flex-col justify-between p-12 overflow-hidden">
+                {/* Abstract Background Pattern */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
+                <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
 
-                <Card className="w-full shadow-lg bg-white dark:bg-gray-800">
-                    <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-white">Iniciar sesión</CardTitle>
-                        <CardDescription className="text-center text-gray-500 dark:text-gray-400">
-                            Ingresa tus credenciales para acceder
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 text-white mb-4">
+                        <div className="h-8 w-8 bg-white text-slate-900 rounded-lg flex items-center justify-center font-black text-xl">
+                            E
+                        </div>
+                        <span className="font-bold text-xl tracking-wide">Elevated Residency</span>
+                    </div>
+                </div>
+
+                <div className="relative z-10 max-w-md">
+                    <p className="text-indigo-400 font-bold tracking-widest text-sm uppercase mb-3">Financial Intelligence</p>
+                    <h1 className="text-4xl font-bold text-white leading-tight mb-6">
+                        Administración financiera de primer nivel.
+                    </h1>
+                    <p className="text-slate-400 text-lg leading-relaxed">
+                        Controla el flujo de caja, identifica depósitos automáticamente y mantén la morosidad al mínimo.
+                    </p>
+                </div>
+
+                <div className="relative z-10 text-slate-500 text-sm font-medium">
+                    © {new Date().getFullYear()} Elevated Residency.
+                </div>
+            </div>
+
+            {/* Right Side: Form */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12">
+                <div className="w-full max-w-md">
+                    <div className="mb-10 text-center lg:text-left">
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">Bienvenido de nuevo</h2>
+                        <p className="text-slate-500 font-medium">Ingresa tus credenciales para acceder a tu panel.</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                        {globalError && (
+                            <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-sm font-semibold border border-rose-100 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                {globalError}
+                            </div>
+                        )}
+
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
-                                Correo electrónico
+                            <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                Correo Electrónico
                             </Label>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="correo@ejemplo.com"
-                                className={`bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 ${errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                placeholder="ejemplo@correo.com"
+                                className={`h-14 rounded-xl bg-slate-50 border-slate-200 font-medium text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 px-4 ${errors.email ? "border-rose-500 focus-visible:ring-rose-500" : ""}`}
                                 {...register("email")}
                             />
                             {errors.email && (
-                                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.email.message}</p>
                             )}
                         </div>
+
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">
+                                <Label htmlFor="password" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     Contraseña
                                 </Label>
-                                <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline dark:text-blue-400">
+                                <Link href="/auth/forgot-password" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
                                     ¿Olvidaste tu contraseña?
                                 </Link>
                             </div>
@@ -114,54 +149,42 @@ export default function LoginPage() {
                                     id="password"
                                     type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
-                                    className={`pr-10 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 ${errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                    className={`h-14 rounded-xl bg-slate-50 border-slate-200 font-medium text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 px-4 pr-12 ${errors.password ? "border-rose-500 focus-visible:ring-rose-500" : ""}`}
                                     {...register("password")}
                                 />
-                                <Button
+                                <button
                                     type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                                    tabIndex={-1}
                                 >
-                                    {showPassword ? (
-                                        <EyeOff className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                    ) : (
-                                        <Eye className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                    )}
-                                </Button>
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
                             </div>
                             {errors.password && (
-                                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+                                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.password.message}</p>
                             )}
                         </div>
+
                         <Button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full bg-gray-500 dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:bg-primary/90 text-white"
+                            className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-md font-bold text-base mt-2"
                         >
                             {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Iniciando sesión...
-                                </>
-                            ) : (
-                                "Iniciar sesión"
-                            )}
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            ) : null}
+                            {isSubmitting ? "Autenticando..." : "Iniciar Sesión"}
                         </Button>
-                    </CardContent>
-                    <CardFooter className="flex justify-center">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            ¿No tienes una cuenta?{" "}
-                            <Link href="/auth/register" className="text-primary hover:underline dark:text-blue-400">
-                                Regístrate
-                            </Link>
-                        </p>
-                    </CardFooter>
-                </Card>
-            </form>
+                    </form>
+
+                    <p className="text-center mt-10 text-sm font-medium text-slate-500">
+                        ¿No tienes una cuenta?{" "}
+                        <Link href="/auth/register" className="text-indigo-600 font-bold hover:text-indigo-700 transition-colors">
+                            Regístrate
+                        </Link>
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }

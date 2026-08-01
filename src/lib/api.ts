@@ -135,14 +135,36 @@ export async function deleteExpense(id: number) {
   return res.json();
 }
 
-export async function fetchDelinquency() {
+export interface DelinquencyReport {
+  total_debt: number;
+  ranking: { house_number: number; debt: number }[];
+  distribution: {
+    al_corriente: number;
+    un_mes: number;
+    dos_meses: number;
+    tres_o_mas: number;
+  };
+}
+
+export interface IncomeReport {
+  period: string;
+  expected: number;
+  identified_income: number;
+  unidentified_income: number;
+  total_income: number;
+  expenses: number;
+  balance: number;
+}
+
+export async function fetchDelinquency(): Promise<DelinquencyReport> {
   const res = await fetch(`${API_BASE_URL}/reports/delinquency`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch delinquency report");
   return res.json();
 }
 
-export async function fetchIncomeVsExpected(period: string) {
+export async function fetchIncomeVsExpected(period: string): Promise<IncomeReport> {
   const res = await fetch(`${API_BASE_URL}/reports/income-vs-expected?period=${period}`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch income report");
   return res.json();
 }
+

@@ -6,10 +6,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Progress } from "@/components/ui/progress";
 import { UploadCloud, CheckCircle, AlertCircle } from "lucide-react";
 import { uploadPdf, generateCharges } from "@/lib/api";
-import { format } from "date-fns";
+import { formatPeriod } from "@/lib/utils";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function PdfUploader({ onUploadSuccess }: { onUploadSuccess: () => void }) {
+export default function PdfUploader({ onUploadSuccess, customUI = false }: { onUploadSuccess: () => void, customUI?: boolean }) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -17,14 +18,16 @@ export default function PdfUploader({ onUploadSuccess }: { onUploadSuccess: () =
   const [error, setError] = useState("");
   const [period, setPeriod] = useState(() => {
     const d = new Date();
+    d.setDate(1);
     d.setMonth(d.getMonth() - 1);
-    return format(d, "MMM-yy");
+    return formatPeriod(d);
   });
 
   const periodOptions = Array.from({ length: 12 }).map((_, i) => {
     const d = new Date();
+    d.setDate(1);
     d.setMonth(d.getMonth() - i);
-    return format(d, "MMM-yy");
+    return formatPeriod(d);
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,13 +61,41 @@ export default function PdfUploader({ onUploadSuccess }: { onUploadSuccess: () =
     }
   };
 
+  const handleOpenChange = (val: boolean) => {
+    setOpen(val);
+    if (!val) {
+      setTimeout(() => {
+        setFile(null);
+        setResult(null);
+        setError("");
+      }, 300);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setFile(null); setResult(null); setError(""); } }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 gap-2 font-medium">
-          <UploadCloud size={18} />
-          Subir Estado de Cuenta
-        </Button>
+        {customUI ? (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-100 p-2 rounded-lg">
+                <UploadCloud size={20} className="text-slate-700" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Edo. de Cuenta</p>
+                <p className="text-xs text-slate-500">Cargar Reporte PDF</p>
+              </div>
+            </div>
+            <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-xs font-medium">
+              Subir
+            </div>
+          </div>
+        ) : (
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 gap-2 font-medium">
+            <UploadCloud size={18} />
+            Subir Estado de Cuenta
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md border-0 shadow-2xl bg-white/95 backdrop-blur-xl">
         <DialogHeader>
@@ -96,13 +127,16 @@ export default function PdfUploader({ onUploadSuccess }: { onUploadSuccess: () =
                   <p className="text-xs text-slate-500 mb-2">
                     Se identificarán los depósitos y se generarán automáticamente las cuotas de mantenimiento para el mes seleccionado.
                   </p>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value)}
-                  >
-                    {periodOptions.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
+                  <Select value={period} onValueChange={setPeriod}>
+                    <SelectTrigger className="w-full h-10 bg-white border-input text-sm rounded-md focus:ring-2 focus:ring-blue-500">
+                      <SelectValue placeholder="Periodo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {periodOptions.map(p => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
@@ -151,7 +185,7 @@ export default function PdfUploader({ onUploadSuccess }: { onUploadSuccess: () =
               </div>
             </div>
 
-            <Button onClick={() => setOpen(false)} className="w-full mt-4" variant="outline">
+            <Button onClick={() => handleOpenChange(false)} className="w-full mt-4" variant="outline">
               Cerrar y ver resultados
             </Button>
           </div>
