@@ -49,7 +49,7 @@ export default function LoginPage() {
 
     useEffect(() => {
         if ((userAuth || user)) {
-            router.push('/profile');
+            router.push('/dashboard');
         }
     }, [user, userAuth, router]);
 
