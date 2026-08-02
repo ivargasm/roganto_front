@@ -8,6 +8,8 @@ export interface Charge {
   id: number;
   period: string;
   amount: number;
+  charge_type: string | null;
+  description: string | null;
 }
 
 export interface House {
@@ -63,6 +65,34 @@ export async function uploadPdf(file: File, period: string) {
 export async function fetchUnidentifiedPayments(): Promise<Payment[]> {
   const res = await fetch(`${API_BASE_URL}/payments/unidentified`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch unidentified payments");
+  return res.json();
+}
+
+export async function createManualPayment(data: { house_id: number; amount: number; payment_date: string; description: string; period: string }) {
+  const res = await fetch(`${API_BASE_URL}/payments/manual`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to create manual payment");
+  }
+  return res.json();
+}
+
+export async function createManualCharge(houseId: number, data: { amount: number; period: string; charge_type: string; description?: string }) {
+  const res = await fetch(`${API_BASE_URL}/houses/${houseId}/charges`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to create manual charge");
+  }
   return res.json();
 }
 
@@ -165,6 +195,42 @@ export async function fetchDelinquency(): Promise<DelinquencyReport> {
 export async function fetchIncomeVsExpected(period: string): Promise<IncomeReport> {
   const res = await fetch(`${API_BASE_URL}/reports/income-vs-expected?period=${period}`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch income report");
+  return res.json();
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  type: string;
+}
+
+export async function fetchCategories(type?: string): Promise<Category[]> {
+  const url = type ? `${API_BASE_URL}/categories?type=${type}` : `${API_BASE_URL}/categories`;
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch categories");
+  return res.json();
+}
+
+export async function createCategory(data: { name: string; type: string }): Promise<Category> {
+  const res = await fetch(`${API_BASE_URL}/categories`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to create category");
+  }
+  return res.json();
+}
+
+export async function deleteCategory(id: number) {
+  const res = await fetch(`${API_BASE_URL}/categories/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to delete category");
   return res.json();
 }
 

@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { fetchHouse, House, unassignPayment } from "@/lib/api";
+import { fetchHouse, House, unassignPayment, createManualPayment, createManualCharge, fetchCategories, Category } from "@/lib/api";
+import { formatPeriod } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, DownloadCloud, ArrowUpRight, ArrowDownLeft, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Loader2, DownloadCloud, ArrowUpRight, ArrowDownLeft, X, Plus } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 
 export default function HouseDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = use(props.params);
@@ -19,12 +24,52 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
   const [paymentToUnassign, setPaymentToUnassign] = useState<number | null>(null);
   const [isUnassigning, setIsUnassigning] = useState(false);
 
-  useEffect(() => {
+  // Manual payment state
+  const [isManualPaymentOpen, setIsManualPaymentOpen] = useState(false);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState("");
+  const [paymentDescription, setPaymentDescription] = useState("");
+  const [paymentPeriod, setPaymentPeriod] = useState("");
+
+  // Manual charge state
+  const [isManualChargeOpen, setIsManualChargeOpen] = useState(false);
+  const [isCreatingCharge, setIsCreatingCharge] = useState(false);
+  const [chargeAmount, setChargeAmount] = useState("");
+  const [chargeDescription, setChargeDescription] = useState("");
+  const [chargePeriod, setChargePeriod] = useState("");
+  const [chargeType, setChargeType] = useState("");
+  
+  const [periodOptions, setPeriodOptions] = useState<string[]>([]);
+  const [chargeCategories, setChargeCategories] = useState<Category[]>([]);
+
+  const loadHouse = useCallback(() => {
     fetchHouse(parseInt(params.id))
       .then(setHouse)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  useEffect(() => {
+    loadHouse();
+  }, [loadHouse]);
+
+  useEffect(() => {
+    const options = [];
+    for (let i = -12; i <= 12; i++) {
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() + i);
+      options.push(formatPeriod(d));
+    }
+    setPeriodOptions(options);
+  }, []);
+
+  useEffect(() => {
+    fetchCategories('charge')
+      .then(setChargeCategories)
+      .catch(console.error);
+  }, []);
 
   if (loading) {
     return (
@@ -63,9 +108,9 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
       id: `c_${c.id}`,
       type: 'charge',
       date: chargeDate,
-      description: `Mensualidad ${c.period}`,
+      description: c.description || (c.charge_type ? `${c.charge_type} ${c.period}` : `Mensualidad ${c.period}`),
       amount: c.amount,
-      ref: `Ref: CAR-${c.id}`
+      ref: c.charge_type ? `Tipo: ${c.charge_type}` : `Ref: CAR-${c.id}`
     });
   });
 
@@ -147,39 +192,120 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
 
   const houseNumberFormatted = house.number.toString().padStart(2, '0');
 
+  const handleCreateManualPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentAmount || !paymentDate || !paymentDescription || !paymentPeriod) {
+      toast.error("Por favor llena todos los campos");
+      return;
+    }
+    
+    setIsCreatingPayment(true);
+    try {
+      await createManualPayment({
+        house_id: house.id,
+        amount: parseFloat(paymentAmount),
+        payment_date: new Date(paymentDate).toISOString(),
+        description: paymentDescription,
+        period: paymentPeriod
+      });
+      setIsManualPaymentOpen(false);
+      
+      setPaymentAmount("");
+      setPaymentDate("");
+      setPaymentDescription("");
+      setPaymentPeriod("");
+      
+      loadHouse();
+      toast.success("Abono registrado exitosamente");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error creando el pago");
+    } finally {
+      setIsCreatingPayment(false);
+    }
+  };
+
+  const handleCreateManualCharge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chargeAmount || !chargeType || !chargePeriod) {
+      toast.error("Por favor llena los campos requeridos (Monto, Tipo, Periodo)");
+      return;
+    }
+    
+    setIsCreatingCharge(true);
+    try {
+      await createManualCharge(house.id, {
+        amount: parseFloat(chargeAmount),
+        period: chargePeriod,
+        charge_type: chargeType,
+        description: chargeDescription || undefined
+      });
+      setIsManualChargeOpen(false);
+      
+      setChargeAmount("");
+      setChargeType("");
+      setChargeDescription("");
+      setChargePeriod("");
+      
+      loadHouse();
+      toast.success("Cargo aplicado exitosamente");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error creando el cargo");
+    } finally {
+      setIsCreatingCharge(false);
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-5xl p-6 md:p-12 space-y-10">
+    <div className="mx-auto max-w-5xl p-6 space-y-6">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-2">
             <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard/houses')} className="rounded-full h-8 w-8 bg-slate-100 hover:bg-slate-200">
               <ArrowLeft size={16} className="text-slate-700" />
             </Button>
-            <p className="text-xs font-semibold text-slate-500 tracking-widest uppercase">Residencial 88</p>
+            <p className="text-[10px] font-semibold text-slate-500 tracking-widest uppercase">Residencial 88</p>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Casa {houseNumberFormatted} — Estado de Cuenta
           </h1>
         </div>
-        <Button 
-          onClick={handlePrintPDF}
-          className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-6 py-5 shadow-md flex items-center gap-2"
-        >
-          <DownloadCloud size={18} />
-          Exportar PDF
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button 
+            variant="outline"
+            onClick={() => setIsManualChargeOpen(true)}
+            className="rounded-xl px-4 py-2 border-rose-200 text-rose-600 hover:bg-rose-50 shadow-sm flex items-center gap-2 font-semibold"
+          >
+            <Plus size={16} />
+            Aplicar Cargo
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setIsManualPaymentOpen(true)}
+            className="rounded-xl px-4 py-2 border-slate-200 shadow-sm flex items-center gap-2 font-semibold"
+          >
+            <Plus size={16} className="text-indigo-600" />
+            Abonar Manual
+          </Button>
+          <Button 
+            onClick={handlePrintPDF}
+            className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-2 shadow-sm flex items-center gap-2"
+          >
+            <DownloadCloud size={16} />
+            Exportar PDF
+          </Button>
+        </div>
       </div>
 
       {/* Hero Card */}
-      <Card className="rounded-3xl border-slate-200 shadow-xl bg-white/90 backdrop-blur-md overflow-hidden relative">
+      <Card className="rounded-2xl border-slate-200 shadow-sm bg-white overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-br from-white to-slate-50/50 -z-10"></div>
-        <CardContent className="p-10 md:p-16">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-8">
-            <div>
-              <p className="text-sm font-bold text-slate-500 tracking-wider mb-3">SALDO ACTUAL</p>
-              <h2 className="text-6xl md:text-7xl font-black text-slate-900 tracking-tighter">
+        <CardContent className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-4">
+            <div className="text-center md:text-left">
+              <p className="text-xs font-bold text-slate-500 tracking-wider mb-1">SALDO ACTUAL</p>
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter">
                 ${house.current_debt.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h2>
             </div>
@@ -201,12 +327,12 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
       </Card>
 
       {/* History List */}
-      <div className="space-y-12 pt-4">
+      <div className="space-y-8 pt-2">
         {Object.entries(groupedHistory).map(([month, items]) => (
           <div key={month}>
-            <h3 className="text-2xl font-bold text-slate-900 mb-6">{month}</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-4">{month}</h3>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               {items.map(item => (
                 <div key={item.id} className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4 group">
                   
@@ -289,7 +415,7 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
                   await unassignPayment(paymentToUnassign);
                   window.location.reload();
                 } catch {
-                  alert("Error desasignando pago");
+                  toast.error("Error desasignando pago");
                 } finally {
                   setIsUnassigning(false);
                 }
@@ -299,6 +425,112 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
               Sí, Desasignar
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Charge Modal */}
+      <Dialog open={isManualChargeOpen} onOpenChange={setIsManualChargeOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <form onSubmit={handleCreateManualCharge}>
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Aplicar Cargo</DialogTitle>
+              <DialogDescription className="text-sm mt-1">
+                Aplica una multa, mensualidad o recargo a la Casa {houseNumberFormatted}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="chargeType" className="text-xs font-bold text-slate-500">Tipo de Cargo</Label>
+                <Select value={chargeType} onValueChange={setChargeType} required>
+                  <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200">
+                    <SelectValue placeholder="Selecciona..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {chargeCategories.map(c => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    ))}
+                    {chargeCategories.length === 0 && <SelectItem value="Mensualidad" disabled>Cargando opciones...</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chargeAmount" className="text-xs font-bold text-slate-500">Monto ($)</Label>
+                <Input id="chargeAmount" type="number" step="0.01" required value={chargeAmount} onChange={e => setChargeAmount(e.target.value)} placeholder="0.00" className="rounded-xl bg-slate-50 border-slate-200" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chargePeriod" className="text-xs font-bold text-slate-500">Periodo (ej. Jun-26)</Label>
+                <Select value={chargePeriod} onValueChange={setChargePeriod} required>
+                  <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200">
+                    <SelectValue placeholder="Selecciona el periodo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {periodOptions.map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chargeDescription" className="text-xs font-bold text-slate-500">Descripción (Opcional)</Label>
+                <Input id="chargeDescription" value={chargeDescription} onChange={e => setChargeDescription(e.target.value)} placeholder="Ej. Retraso de 3 días..." className="rounded-xl bg-slate-50 border-slate-200" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsManualChargeOpen(false)} disabled={isCreatingCharge} className="rounded-xl">Cancelar</Button>
+              <Button type="submit" className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white" disabled={isCreatingCharge}>
+                {isCreatingCharge ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Guardar Cargo
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Payment Modal */}
+      <Dialog open={isManualPaymentOpen} onOpenChange={setIsManualPaymentOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <form onSubmit={handleCreateManualPayment}>
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Abonar Manual</DialogTitle>
+              <DialogDescription className="text-sm mt-1">
+                Ingresa los detalles del abono para la Casa {houseNumberFormatted}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="paymentAmount" className="text-xs font-bold text-slate-500">Monto ($)</Label>
+                <Input id="paymentAmount" type="number" step="0.01" required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder="0.00" className="rounded-xl bg-slate-50 border-slate-200" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="paymentDate" className="text-xs font-bold text-slate-500">Fecha del Depósito</Label>
+                <Input id="paymentDate" type="date" required value={paymentDate} onChange={e => setPaymentDate(e.target.value)} className="rounded-xl bg-slate-50 border-slate-200" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="paymentPeriod" className="text-xs font-bold text-slate-500">Periodo Contable</Label>
+                <Select value={paymentPeriod} onValueChange={setPaymentPeriod} required>
+                  <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200">
+                    <SelectValue placeholder="Selecciona el periodo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {periodOptions.map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="paymentDescription" className="text-xs font-bold text-slate-500">Descripción / Referencia</Label>
+                <Input id="paymentDescription" required value={paymentDescription} onChange={e => setPaymentDescription(e.target.value)} placeholder="Transferencia banco..." className="rounded-xl bg-slate-50 border-slate-200" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsManualPaymentOpen(false)} disabled={isCreatingPayment} className="rounded-xl">Cancelar</Button>
+              <Button type="submit" className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white" disabled={isCreatingPayment}>
+                {isCreatingPayment ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Guardar Abono
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

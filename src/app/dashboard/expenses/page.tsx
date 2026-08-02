@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchExpenses, createExpense, deleteExpense, Expense } from "@/lib/api";
+import { fetchExpenses, createExpense, deleteExpense, Expense, fetchCategories, Category } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -44,10 +45,15 @@ export default function ExpensesPage() {
   const loadExpenses = async () => {
     setLoading(true);
     try {
-      const data = await fetchExpenses();
+      const [data, cats] = await Promise.all([
+        fetchExpenses(),
+        fetchCategories('expense')
+      ]);
+      
       // Sort DESC (newest first)
       data.sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime());
       setExpenses(data);
+      setExpenseCategories(cats);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -108,8 +114,6 @@ export default function ExpensesPage() {
       </div>
     );
   }
-
-  const categories = ["Luz", "Agua", "Mantenimiento", "Seguridad", "Servicios", "Jardinería", "Otros"];
 
   // Filter expenses based on selected period
   const filteredExpenses = filterPeriod === "Todos" 
@@ -210,9 +214,10 @@ export default function ExpensesPage() {
                       <SelectValue placeholder="Seleccionar..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      {expenseCategories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                       ))}
+                      {expenseCategories.length === 0 && <SelectItem value="Cargando" disabled>Cargando opciones...</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>

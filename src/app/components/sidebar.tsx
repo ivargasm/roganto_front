@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Home, HelpCircle, CircleDollarSign, BarChart3, LogOut } from "lucide-react";
+import { LayoutDashboard, Home, HelpCircle, CircleDollarSign, BarChart3, LogOut, Settings } from "lucide-react";
 import { useAuthStore } from "../store/Store";
 
 export default function Sidebar() {
@@ -15,6 +15,7 @@ export default function Sidebar() {
     { name: "Pagos No Identificados", href: "/dashboard/unidentified", icon: HelpCircle },
     { name: "Egresos", href: "/dashboard/expenses", icon: CircleDollarSign },
     { name: "Reportes", href: "/dashboard/reports", icon: BarChart3 },
+    { name: "Configuración", href: "/dashboard/settings", icon: Settings },
   ];
 
   return (
