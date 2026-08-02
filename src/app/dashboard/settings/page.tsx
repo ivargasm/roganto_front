@@ -43,7 +43,7 @@ export default function SettingsPage() {
       setNewName("");
       loadCategories();
       toast.success("Categoría creada");
-    } catch (err) {
+    } catch {
       toast.error("Error al crear categoría");
     } finally {
       setIsCreating(false);
@@ -56,7 +56,7 @@ export default function SettingsPage() {
       await deleteCategory(id);
       loadCategories();
       toast.success("Categoría eliminada");
-    } catch (err) {
+    } catch {
       toast.error("Error al eliminar (puede que esté en uso)");
     }
   };
