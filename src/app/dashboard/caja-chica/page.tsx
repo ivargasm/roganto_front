@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Loader2 } from "lucide-react";
 import { getPettyCashSummary, createExpense, fetchCategories, Category } from "@/lib/api";
 import { toast } from "sonner";
@@ -12,8 +12,24 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatPeriod } from "@/lib/utils";
 
+interface Movement {
+  id: string;
+  type: "inflow" | "outflow";
+  amount: number;
+  date: string;
+  description: string;
+  category: string;
+}
+
+interface PettyCashSummaryType {
+  total_inflows: number;
+  total_outflows: number;
+  balance: number;
+  recent_movements: Movement[];
+}
+
 export default function CajaChicaPage() {
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<PettyCashSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
   
   const periodOptions = Array.from({ length: 12 }).map((_, i) => {
@@ -34,16 +50,17 @@ export default function CajaChicaPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
   
-  const loadSummary = async () => {
+  const loadSummary = useCallback(async () => {
     try {
       const data = await getPettyCashSummary(filterPeriod);
       setSummary(data);
     } catch (err) {
+      console.error(err);
       toast.error("Error al cargar la caja chica");
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterPeriod]);
 
   const loadCategories = async () => {
     try {
@@ -57,7 +74,7 @@ export default function CajaChicaPage() {
 
   useEffect(() => {
     loadSummary();
-  }, [filterPeriod]);
+  }, [loadSummary]);
 
   useEffect(() => {
     loadCategories();
@@ -184,7 +201,7 @@ export default function CajaChicaPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {summary?.recent_movements?.map((m: any) => (
+              {summary?.recent_movements?.map((m: Movement) => (
                 <tr key={m.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
                     {format(new Date(m.date), "dd/MM/yyyy")}
