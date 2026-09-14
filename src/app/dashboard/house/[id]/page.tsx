@@ -31,6 +31,7 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
   const [paymentDate, setPaymentDate] = useState("");
   const [paymentDescription, setPaymentDescription] = useState("");
   const [paymentPeriod, setPaymentPeriod] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Efectivo");
 
   // Manual charge state
   const [isManualChargeOpen, setIsManualChargeOpen] = useState(false);
@@ -206,7 +207,8 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
         amount: parseFloat(paymentAmount),
         payment_date: new Date(paymentDate).toISOString(),
         description: paymentDescription,
-        period: paymentPeriod
+        period: paymentPeriod,
+        payment_method: paymentMethod
       });
       setIsManualPaymentOpen(false);
       
@@ -214,6 +216,7 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
       setPaymentDate("");
       setPaymentDescription("");
       setPaymentPeriod("");
+      setPaymentMethod("Efectivo");
       
       loadHouse();
       toast.success("Abono registrado exitosamente");
@@ -515,6 +518,18 @@ export default function HouseDetailPage(props: { params: Promise<{ id: string }>
                     {periodOptions.map(p => (
                       <SelectItem key={p} value={p}>{p}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="paymentMethod" className="text-xs font-bold text-slate-500">Método de Pago</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
+                  <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200">
+                    <SelectValue placeholder="Selecciona..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Efectivo">Efectivo (Caja Chica)</SelectItem>
+                    <SelectItem value="Transferencia">Transferencia Bancaria</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

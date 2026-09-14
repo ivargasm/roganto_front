@@ -28,6 +28,7 @@ export interface Payment {
   amount: number;
   payment_date: string;
   description: string;
+  payment_method: string;
 }
 
 export async function fetchHouses(): Promise<House[]> {
@@ -68,7 +69,7 @@ export async function fetchUnidentifiedPayments(): Promise<Payment[]> {
   return res.json();
 }
 
-export async function createManualPayment(data: { house_id: number; amount: number; payment_date: string; description: string; period: string }) {
+export async function createManualPayment(data: { house_id: number; amount: number; payment_date: string; description: string; period: string; payment_method: string }) {
   const res = await fetch(`${API_BASE_URL}/payments/manual`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -134,6 +135,7 @@ export interface Expense {
   category: string;
   period: string;
   created_at: string;
+  payment_method: string;
 }
 
 export async function fetchExpenses(): Promise<Expense[]> {
@@ -231,6 +233,13 @@ export async function deleteCategory(id: number) {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to delete category");
+  return res.json();
+}
+
+export async function getPettyCashSummary(period?: string) {
+  const url = period ? `${API_BASE_URL}/caja-chica/summary?period=${encodeURIComponent(period)}` : `${API_BASE_URL}/caja-chica/summary`;
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch petty cash summary");
   return res.json();
 }
 

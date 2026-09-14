@@ -36,6 +36,7 @@ export default function ExpensesPage() {
   const [description, setDescription] = useState("");
   const [expenseDate, setExpenseDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [period, setPeriod] = useState(previousMonthPeriod);
+  const [paymentMethod, setPaymentMethod] = useState("Efectivo");
   
   // Filter State
   const [filterPeriod, setFilterPeriod] = useState(previousMonthPeriod);
@@ -79,7 +80,8 @@ export default function ExpensesPage() {
         category,
         description,
         expense_date: new Date(expenseDate).toISOString(),
-        period
+        period,
+        payment_method: paymentMethod
       });
       toast.success("Gasto registrado exitosamente");
       setAmount("");
@@ -234,6 +236,19 @@ export default function ExpensesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Método de Pago</label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 font-medium text-slate-900 focus:ring-indigo-500 focus:border-indigo-500">
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Efectivo">Efectivo (Caja Chica)</SelectItem>
+                    <SelectItem value="Transferencia">Transferencia Bancaria</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
